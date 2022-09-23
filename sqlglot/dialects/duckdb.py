@@ -62,9 +62,18 @@ def _sort_array_reverse(args):
     return exp.SortArray(this=list_get(args, 0), asc=exp.FALSE)
 
 
-def _struct_pack_sql(self, expression):
-    args = [self.binary(e, ":=") if isinstance(e, exp.EQ) else self.sql(e) for e in expression.expressions]
-    return f"STRUCT_PACK({', '.join(args)})"
+def _parse_struct_pack(args):
+    expressions = []
+    for i in range(0, len(args), 2):
+        this = args[i]
+        expression = args[i + 1]
+        expressions.append(exp.StructKwarg(this=this, expression=expression))
+    return exp.Struct(expressions=expressions)
+
+
+# def _struct_pack_sql(self, expression):
+#     args = [self.binary(e, ":=") if isinstance(e, exp.EQ) else self.sql(e) for e in expression.expressions]
+#     return f"STRUCT_PACK({', '.join(args)})"
 
 
 class DuckDB(Dialect):
@@ -99,7 +108,8 @@ class DuckDB(Dialect):
             "STRING_TO_ARRAY": exp.Split.from_arg_list,
             "STR_SPLIT_REGEX": exp.RegexpSplit.from_arg_list,
             "STRING_SPLIT_REGEX": exp.RegexpSplit.from_arg_list,
-            "STRUCT_PACK": exp.Struct.from_arg_list,
+            # "STRUCT_PACK": exp.Struct.from_arg_list,
+            "STRUCT_PACK": _parse_struct_pack,
             "TO_TIMESTAMP": exp.TimeStrToTime.from_arg_list,
             "UNNEST": exp.Explode.from_arg_list,
         }
@@ -131,7 +141,9 @@ class DuckDB(Dialect):
             exp.StrToDate: lambda self, e: f"CAST({_str_to_time_sql(self, e)} AS DATE)",
             exp.StrToTime: _str_to_time_sql,
             exp.StrToUnix: lambda self, e: f"EPOCH(STRPTIME({self.sql(e, 'this')}, {self.format_time(e)}))",
-            exp.Struct: _struct_pack_sql,
+            # exp.Struct: _struct_pack_sql,
+            exp.Struct: lambda self, e: f"STRUCT_PACK({', '.join([self.sql(ex) for ex in e.expressions])})",
+            exp.StructKwarg: lambda self, e: f"{self.sql(e, 'this')} := {self.sql(e, 'expression')}",
             exp.TableSample: no_tablesample_sql,
             exp.TimeStrToDate: lambda self, e: f"CAST({self.sql(e, 'this')} AS DATE)",
             exp.TimeStrToTime: lambda self, e: f"CAST({self.sql(e, 'this')} AS TIMESTAMP)",

@@ -748,6 +748,9 @@ class Generator:
     def structkwarg_sql(self, expression):
         return f"{self.sql(expression, 'this')} {self.sql(expression, 'expression')}"
 
+    def objectkwarg_sql(self, expression):
+        return f"{self.sql(expression, 'this')}{} {self.sql(expression, 'expression')}"
+
     def placeholder_sql(self, *_):
         return "?"
 

@@ -119,6 +119,7 @@ class TestDuckDB(Validator):
                 "presto": 'x."abc"',
                 "hive": "x.`abc`",
                 "spark": "x.`abc`",
+                # "snowflake": 'x:"abc"',
             },
         )
         self.validate_all(

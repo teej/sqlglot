@@ -220,3 +220,31 @@ class TestSnowflake(Validator):
                 "snowflake": "SELECT EXTRACT(month FROM CAST(a AS DATETIME))",
             },
         )
+
+    def test_semi_structured_types(self):
+        # ARRAY = auto()
+        self.validate_identity("SELECT CAST(a AS VARIANT)")
+        self.validate_identity("SELECT {'Alberta': 'Edmonton', 'Manitoba': 'Winnipeg'}")
+        self.validate_all(
+            "SELECT OBJECT_CONSTRUCT('Alberta', 'Edmonton', 'Manitoba', 'Winnipeg')",
+            write={
+                "snowflake": "SELECT {'Alberta': 'Edmonton', 'Manitoba': 'Winnipeg'}",
+            },
+        )
+        # self.validate_identity("SELECT ARRAY_CONSTRUCT('Alberta', 'Edmonton', 'Manitoba', 'Winnipeg')")
+        self.validate_all(
+            "SELECT ARRAY_CONSTRUCT('Alberta', 'Edmonton', 'Manitoba', 'Winnipeg')",
+            write={
+                "snowflake": "SELECT ['Alberta', 'Edmonton', 'Manitoba', 'Winnipeg']",
+            },
+        )
+        self.validate_identity("SELECT {}")
+        self.validate_identity("SELECT {'a': 'b', 'c': d, 'e': 1, 'f': {'g': ['h']}}")
+        self.validate_all(
+            "SELECT OBJECT_CONSTRUCT('a', 'b', 'c', d, 'e', 1, 'f', OBJECT_CONSTRUCT('g', ARRAY('h')))",
+            write={
+                "bigquery": "SELECT STRUCT('b' AS a, d AS c, 1 AS e, STRUCT(['h'] AS g) AS f)",
+                "duckdb": "SELECT STRUCT_PACK('a' := 'b', 'c' := d, 'e' := 1, 'f' := STRUCT_PACK('g' := LIST_VALUE('h')))",
+                "snowflake": "SELECT {'a': 'b', 'c': d, 'e': 1, 'f': {'g': ['h']}}",
+            }
+        )

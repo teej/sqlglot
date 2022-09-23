@@ -64,6 +64,15 @@ def _unix_to_time(self, expression):
     raise ValueError("Improper scale for timestamp")
 
 
+def _parse_object_construct(args):
+    expressions = []
+    for i in range(0, len(args), 2):
+        this = args[i]
+        expression = args[i + 1]
+        expressions.append(exp.StructKwarg(this=this, expression=expression))
+    return exp.Struct(expressions=expressions)
+
+
 class Snowflake(Dialect):
     null_ordering = "nulls_are_large"
     time_format = "'yyyy-mm-dd hh24:mi:ss'"
@@ -104,6 +113,8 @@ class Snowflake(Dialect):
             "ARRAYAGG": exp.ArrayAgg.from_arg_list,
             "IFF": exp.If.from_arg_list,
             "TO_TIMESTAMP": _snowflake_to_timestamp,
+            "OBJECT_CONSTRUCT": _parse_object_construct,
+            "ARRAY_CONSTRUCT": exp.Array.from_arg_list,
         }
 
         FUNCTION_PARSERS = {
@@ -131,19 +142,27 @@ class Snowflake(Dialect):
             "TIMESTAMP_NTZ": TokenType.TIMESTAMP,
             "TIMESTAMP_TZ": TokenType.TIMESTAMPTZ,
             "TIMESTAMPNTZ": TokenType.TIMESTAMP,
+            "VARIANT": TokenType.SQL_VARIANT,
+            "OBJECT": TokenType.STRUCT,
         }
 
     class Generator(Generator):
+
         TRANSFORMS = {
             **Generator.TRANSFORMS,
             exp.If: rename_func("IFF"),
             exp.StrToTime: lambda self, e: f"TO_TIMESTAMP({self.sql(e, 'this')}, {self.format_time(e)})",
             exp.UnixToTime: _unix_to_time,
+            exp.Struct: lambda self, e: "{" + ', '.join([self.sql(ex) for ex in e.expressions]) +  "}",
+            exp.StructKwarg: lambda self, e: f"{self.sql(e, 'this')}: {self.sql(e, 'expression')}",
+            exp.Array: lambda self, e: f"[{', '.join([self.sql(ex) for ex in e.expressions])}]",
         }
 
         TYPE_MAPPING = {
             **Generator.TYPE_MAPPING,
             exp.DataType.Type.TIMESTAMP: "TIMESTAMPNTZ",
+            exp.DataType.Type.SQL_VARIANT: "VARIANT",
+            exp.DataType.Type.STRUCT: "OBJECT",
         }
 
         def except_op(self, expression):

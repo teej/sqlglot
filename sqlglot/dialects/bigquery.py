@@ -91,6 +91,7 @@ class BigQuery(Dialect):
             exp.TimestampAdd: _date_add_sql("TIMESTAMP", "ADD"),
             exp.TimestampSub: _date_add_sql("TIMESTAMP", "SUB"),
             exp.VariancePop: rename_func("VAR_POP"),
+            exp.StructKwarg: lambda self, e: f"{self.sql(e, 'expression')} AS {self.sql(e.this, 'this')}",
         }
 
         TYPE_MAPPING = {

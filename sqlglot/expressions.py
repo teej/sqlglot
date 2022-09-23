@@ -1748,6 +1748,15 @@ class StructKwarg(Expression):
     arg_types = {"this": True, "expression": True}
 
 
+# class Struct(Func):
+#     arg_types = {"expressions": True}
+#     is_var_len_args = True
+
+
+class ObjectKwarg(Expression):
+    arg_types = {"value": True, "name": False}
+
+
 # WHERE x <OP> EXISTS|ALL|ANY|SOME(SELECT ...)
 class SubqueryPredicate(Predicate):
     pass

@@ -89,6 +89,7 @@ class Dialect(metaclass=_Dialect):
     quote_end = None
     identifier_start = None
     identifier_end = None
+    object_kwarg_delimiter = None
 
     time_trie = None
     inverse_time_mapping = None

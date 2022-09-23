@@ -1504,6 +1504,8 @@ class Parser:
             if not self._match(TokenType.GT):
                 self.raise_error("Expecting >")
 
+        # GO HERE
+
         if type_token in self.TIMESTAMPS:
             tz = self._match(TokenType.WITH_TIME_ZONE) or type_token == TokenType.TIMESTAMPTZ
             if tz:
@@ -1531,6 +1533,7 @@ class Parser:
         )
 
     def _parse_struct_kwargs(self):
+        # breakpoint()
         this = self._parse_id_var()
         self._match(TokenType.COLON)
         data_type = self._parse_types()
@@ -1549,7 +1552,11 @@ class Parser:
         if isinstance(this, exp.Identifier):
             this = self.expression(exp.Column, this=this)
         elif not this:
-            return self._parse_bracket(this)
+            # return self._parse_bracket(this)
+            bracket = self._parse_bracket(this)
+            if bracket:
+                return bracket
+            return self._parse_object(this)
         this = self._parse_bracket(this)
 
         while self._match_set(self.COLUMN_OPERATORS):
@@ -1822,6 +1829,23 @@ class Parser:
             self.raise_error("Expected ]")
 
         return self._parse_bracket(this)
+
+    def _parse_object(self, this):
+        if not self._match(TokenType.L_BRACE):
+            return this
+        expressions = self._parse_csv(self._parse_object_kwargs)
+        if not self._match(TokenType.R_BRACE):
+            self.raise_error("Expected }")
+
+        return self.expression(exp.Struct, expressions=expressions)
+
+    def _parse_object_kwargs(self):
+        this = self._parse_string()
+        if not this:
+            return None
+        self._match(TokenType.COLON)
+        expression = self._parse_conjunction()
+        return self.expression(exp.StructKwarg, this=this, expression=expression)
 
     def _parse_case(self):
         ifs = []
