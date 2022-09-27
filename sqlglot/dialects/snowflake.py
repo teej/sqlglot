@@ -1,5 +1,10 @@
 from sqlglot import exp
-from sqlglot.dialects.dialect import Dialect, format_time_lambda, rename_func
+from sqlglot.dialects.dialect import (
+    Dialect,
+    format_time_lambda,
+    inline_array_sql,
+    rename_func,
+)
 from sqlglot.expressions import Literal
 from sqlglot.generator import Generator
 from sqlglot.helper import list_get
@@ -115,11 +120,17 @@ class Snowflake(Dialect):
             "TO_TIMESTAMP": _snowflake_to_timestamp,
             "OBJECT_CONSTRUCT": _parse_object_construct,
             "ARRAY_CONSTRUCT": exp.Array.from_arg_list,
+            "RLIKE": exp.RegexpLike.from_arg_list,
         }
 
         FUNCTION_PARSERS = {
             **Parser.FUNCTION_PARSERS,
             "DATE_PART": lambda self: self._parse_extract(),
+        }
+
+        FUNC_TOKENS = {
+            *Parser.FUNC_TOKENS,
+            TokenType.RLIKE,
         }
 
         COLUMN_OPERATORS = {
@@ -134,6 +145,12 @@ class Snowflake(Dialect):
     class Tokenizer(Tokenizer):
         QUOTES = ["'", "$$"]
         ESCAPE = "\\"
+
+        SINGLE_TOKENS = {
+            **Tokenizer.SINGLE_TOKENS,
+            "$": TokenType.DOLLAR,  # needed to break for quotes
+        }
+
         KEYWORDS = {
             **Tokenizer.KEYWORDS,
             "QUALIFY": TokenType.QUALIFY,
@@ -142,6 +159,7 @@ class Snowflake(Dialect):
             "TIMESTAMP_NTZ": TokenType.TIMESTAMP,
             "TIMESTAMP_TZ": TokenType.TIMESTAMPTZ,
             "TIMESTAMPNTZ": TokenType.TIMESTAMP,
+            "SAMPLE": TokenType.TABLE_SAMPLE,
             "VARIANT": TokenType.SQL_VARIANT,
             "OBJECT": TokenType.STRUCT,
         }
@@ -153,9 +171,9 @@ class Snowflake(Dialect):
             exp.If: rename_func("IFF"),
             exp.StrToTime: lambda self, e: f"TO_TIMESTAMP({self.sql(e, 'this')}, {self.format_time(e)})",
             exp.UnixToTime: _unix_to_time,
-            exp.Struct: lambda self, e: "{" + ', '.join([self.sql(ex) for ex in e.expressions]) +  "}",
+            exp.Struct: lambda self, e: "{" + ", ".join([self.sql(ex) for ex in e.expressions]) + "}",
             exp.StructKwarg: lambda self, e: f"{self.sql(e, 'this')}: {self.sql(e, 'expression')}",
-            exp.Array: lambda self, e: f"[{', '.join([self.sql(ex) for ex in e.expressions])}]",
+            exp.Array: inline_array_sql,
         }
 
         TYPE_MAPPING = {

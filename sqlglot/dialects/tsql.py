@@ -1,6 +1,7 @@
 from sqlglot import exp
 from sqlglot.dialects.dialect import Dialect
 from sqlglot.generator import Generator
+from sqlglot.parser import Parser
 from sqlglot.tokens import Tokenizer, TokenType
 
 
@@ -24,10 +25,17 @@ class TSQL(Dialect):
             "MONEY": TokenType.MONEY,
             "SMALLMONEY": TokenType.SMALLMONEY,
             "ROWVERSION": TokenType.ROWVERSION,
-            "SQL_VARIANT": TokenType.SQL_VARIANT,
             "UNIQUEIDENTIFIER": TokenType.UNIQUEIDENTIFIER,
             "XML": TokenType.XML,
+            "SQL_VARIANT": TokenType.VARIANT,
         }
+
+    class Parser(Parser):
+        def _parse_convert(self):
+            to = self._parse_types()
+            self._match(TokenType.COMMA)
+            this = self._parse_field()
+            return self.expression(exp.Cast, this=this, to=to)
 
     class Generator(Generator):
         TYPE_MAPPING = {
@@ -35,4 +43,5 @@ class TSQL(Dialect):
             exp.DataType.Type.BOOLEAN: "BIT",
             exp.DataType.Type.INT: "INTEGER",
             exp.DataType.Type.DECIMAL: "NUMERIC",
+            exp.DataType.Type.VARIANT: "SQL_VARIANT",
         }
