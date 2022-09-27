@@ -160,7 +160,6 @@ class Snowflake(Dialect):
             "TIMESTAMP_TZ": TokenType.TIMESTAMPTZ,
             "TIMESTAMPNTZ": TokenType.TIMESTAMP,
             "SAMPLE": TokenType.TABLE_SAMPLE,
-            "VARIANT": TokenType.SQL_VARIANT,
             "OBJECT": TokenType.STRUCT,
         }
 
@@ -179,7 +178,6 @@ class Snowflake(Dialect):
         TYPE_MAPPING = {
             **Generator.TYPE_MAPPING,
             exp.DataType.Type.TIMESTAMP: "TIMESTAMPNTZ",
-            exp.DataType.Type.SQL_VARIANT: "VARIANT",
             exp.DataType.Type.STRUCT: "OBJECT",
         }
 
